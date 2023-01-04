@@ -6,7 +6,7 @@
 
 void printAC(int n,bool board){
      for(int i=0; i<n; i++){
-        for(int j=0; j<n; j++) printf(board[in+j] ? "O" : "░");
+        for(int j=0; j<n; j++) printf(board[i+j] ? "O" : "░");
         printf("\n");
     }
 }
@@ -19,7 +19,7 @@ int count_live_neighbour_cell(bool board,int n, int r, int c){
             if((i==r && j==c)  (i<0  j<0)  (i>=n  j>=n)){
                 continue;
             }
-            if(board[in+j]){
+            if(board[i+j]){
                 count++;
             }
         }

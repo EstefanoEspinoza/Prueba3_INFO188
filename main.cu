@@ -1,3 +1,5 @@
+    #pragma once
+    
     #include <cuda.h>
     #include <cstdlib>
     #include <cstdio>
@@ -6,8 +8,81 @@
 
     using namespace std;
 
-    #include "utils.cu"
-    #include "kernelGPU_AC.cu"
+    //#include "utils.cu"
+    //#include "kernelGPU_AC.cu"
+
+    // -----------------------------------------------------------------------------------------------
+
+    #pragma once
+__global__ void GoLKernel(bool *tablero, bool *temp, int n) {
+    int fila = blockIdx.y * blockDim.y + threadIdx.y;
+    int columna = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (fila < 0 || fila >= n || columna < 0 || columna >= n) {
+        return;
+    }
+
+    int cont = 0;
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            if (i == 0 && j == 0) {
+                continue;
+            }
+
+            int vecindad_eje_X = fila + i;
+            int vecindad_eje_y = columna + j;
+            if (vecindad_eje_X < 0 || vecindad_eje_X >= n || vecindad_eje_y < 0 || vecindad_eje_y >= n) {
+                continue;
+            }
+
+            if (tablero[(vecindad_eje_X * n) + vecindad_eje_y])
+                cont++;
+        }
+    }
+
+    if (tablero[(fila * n) + columna]) {
+        if (cont == 2 || cont == 3) {
+            temp[(fila * n) + columna] = 1;
+        } else {
+            temp[(fila * n) + columna] = 0;
+        }
+    } else {
+        if (cont == 3) {
+            temp[(fila * n) + columna] = 1;
+        } else {
+            temp[(fila * n) + columna] = 0;
+        }
+    }
+}
+
+    // -----------------------------------------------------------------------------------------------
+
+    void printAutomataCelular(int n,bool *board){
+     for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++) {
+            printf(board[i*n+j] ? "*" : "/");
+        }
+        printf("\n");
+    }
+}
+
+
+int count_live_neighbour_cell(bool *board,int n, int r, int c){
+    int i, j, count=0;
+    for(i = r - 1; i < = r + 1; i++){
+        for(j = c - 1; j < = c + 1; j++){
+            if((i==r && j==c) || (i<0 || j<0) || (i>=n || j>=n)){
+                continue;
+            }
+            if(board[i*n+j]){
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+    // -----------------------------------------------------------------------------------------------
 
     void cpu_sim(int n, int pasos, bool *board, bool *temp, int nt){
         int neighbour_live_cell;
@@ -87,8 +162,8 @@
         int seed     = atoi(argv[3]);
         int pasos    = atoi(argv[4]);
         int nt   = atoi(argv[5]);
-        int nb  = atoi(argv[6]); // si el valor ingresado es 0 lanza core dumped xd
-        int CPUoGPU = atoi(argv[7]);
+        int nb  = atoi(argv[6]); // si el valor ingresado en nb es 0 lanza core dumped xd
+        int CPU_o_GPU = atoi(argv[7]);
 
         srand(seed);
         
@@ -101,17 +176,17 @@
         
         printf("[AC][ORIGINAL] created\n");
         if(n<=128){
-            printAutomataCelular(n,board);
+            printAutomataCelular(n,board);  //Imprime la primera iteración de la ejecución.
         } 
         printf("Presiona enter para continuar\n");
         fflush(stdout);
         getchar();
-        if(CPUoGPU){
-            //modo GPU
+        if(CPU_o_GPU){
+            //entra al modo GPU para esta ejecución
             gpu_sim(n,pasos,board,temp,nb,GPUID);
         }
         else{
-            //modo CPU
+            //entra al modo CPU para esta ejecución
         cpu_sim(n,pasos,board,temp, nt);
         }
     }

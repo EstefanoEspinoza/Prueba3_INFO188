@@ -1,4 +1,3 @@
-```cuda
     #include <cuda.h>
     #include <cstdlib>
     #include <cstdio>
@@ -12,10 +11,10 @@
 
     void cpu_sim(int n, int pasos, bool *board, bool *temp, int nt){
         int i,j,neighbour_live_cell;
-        double t;
+        double t,f;
         omp_set_num_threads(nt);
         for(int p=0; p<pasos; ++p){
-                    printf("[AC][CPU][%i]\n", p);
+                    printf("[AC][CPU] step %i, n %i, nt %i\n", p,n,nt);
                     t = omp_get_wtime();
 
                     #pragma omp parallel for
@@ -34,10 +33,10 @@
                         }
                     }
                 
-                    
+                    f = omp_get_wtime() - t;
                     std::swap(board,temp);
                     if(n<=128) printAC(n,board);
-                    printf("done in %f[s]\n", omp_get_wtime() - t);
+                    printf("done in %f[s]\n", f);
                     printf("Press enter to continue\n");
                     fflush(stdout);
                     getchar();
@@ -56,20 +55,22 @@
         dim3 block(nb,nb);
         dim3 grid((n+block.x-1)/block.x, (n+block.y-1)/block.y);
         for(int p=0; p<pasos; p++){
-            printf("[AC][GPU][%i]\n", p);
+            printf("[AC][GPU] step %i, n %i, nb %i\n", p,n,nb);
             cudaEventRecord(start);
             GoLKernel<<<grid, block>>>(board_d, temp_d, n);
             cudaDeviceSynchronize();    cudaEventRecord(stop);  cudaEventSynchronize(stop);
             cudaEventElapsedTime(&msecs,start,stop);
             cudaMemcpy(board_d,temp_d,sizeof(bool)*n*n,cudaMemcpyDeviceToDevice);
-            cudaMemcpy(board,board_d,sizeof(bool)*n*n,cudaMemcpyDeviceToHost);
-            if(n<=128) printAC(n,board);
-             printf("done in %f[s]\n", msecs/1000.0f);
+            if(n<=128){
+                cudaMemcpy(board,board_d,sizeof(bool)*n*n,cudaMemcpyDeviceToHost);
+                printAC(n,board);
+            }
+            printf("done in %f[s]\n", msecs/1000.0f);
             printf("Press enter to continue\n");
             fflush(stdout);
             getchar();
         }
-
+        if(n>128)cudaMemcpy(board,board_d,sizeof(bool)*n*n,cudaMemcpyDeviceToHost);
     }
 
     int main(int argc, char **argv){
@@ -93,8 +94,9 @@
             for(int j=0; j<n; j++)
                 board[i*n+j] = rand()%2;
         }
-        printf("[AC][ORIGINAL]\n");
-        printAC(n,board);
+        
+        printf("[AC][ORIGINAL] created\n");
+        if(n<=128) printAC(n,board);
         printf("Press enter to continue\n");
         fflush(stdout);
         getchar();
@@ -107,5 +109,3 @@
         cpu_sim(n,pasos,board,temp, nt);
         }
     }
-
-```

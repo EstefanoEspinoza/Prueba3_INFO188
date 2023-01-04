@@ -107,5 +107,3 @@
         cpu_sim(n,pasos,tablero,temp, nt);
         }
     }
-
-```

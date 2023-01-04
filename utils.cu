@@ -6,7 +6,7 @@
 
 void printAC(int n,bool board){
      for(int i=0; i<n; i++){
-        for(int j=0; j<n; j++) printf(board[in+j] ? "*" : "█");
+        for(int j=0; j<n; j++) printf(board[in+j] ? "O" : "░");
         printf("\n");
     }
 }

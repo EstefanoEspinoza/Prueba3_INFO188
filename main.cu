@@ -1,4 +1,4 @@
-
+```cuda
     #include <cuda.h>
     #include <cstdlib>
     #include <cstdio>
@@ -8,9 +8,9 @@
     using namespace std;
 
     #include "utils.cu"
-    #include "kernelGPU_AC.cu"
+    #include "kernelACGPU.cu"
 
-    void cpu_sim(int n, int pasos, bool *tablero, bool *temp, int nt){
+    void cpu_sim(int n, int pasos, bool *board, bool *temp, int nt){
         int i,j,neighbour_live_cell;
         double t;
         omp_set_num_threads(nt);
@@ -21,11 +21,11 @@
                     #pragma omp parallel for
                     for(i=0; i<n; i++){
                         for(j=0;j<n;j++){
-                            neighbour_live_cell=count_live_neighbour_cell(tablero,n,i,j);
-                            if(tablero[i*n+j] && (neighbour_live_cell==2 || neighbour_live_cell==3)){
+                            neighbour_live_cell=count_live_neighbour_cell(board,n,i,j);
+                            if(board[i*n+j] && (neighbour_live_cell==2 || neighbour_live_cell==3)){
                                 temp[i*n+j]=1;
                             }
-                            else if((!tablero[i*n+j]) && neighbour_live_cell==3){
+                            else if((!board[i*n+j]) && neighbour_live_cell==3){
                                 temp[i*n+j]=1;
                             }
                             else{
@@ -35,8 +35,8 @@
                     }
                 
                     
-                    std::swap(tablero,temp);
-                    if(n<=128) printAC(n,tablero);
+                    std::swap(board,temp);
+                    if(n<=128) printAC(n,board);
                     printf("done in %f[s]\n", omp_get_wtime() - t);
                     printf("Press enter to continue\n");
                     fflush(stdout);
@@ -44,7 +44,7 @@
         }
     }
 
-    void gpu_sim(int n,int pasos,bool *tablero,bool *temp, int nb, int GPUID){
+    void gpu_sim(int n,int pasos,bool *board,bool *temp, int nb, int GPUID){
         bool *board_d, *temp_d;
         float msecs;
         cudaEvent_t start, stop;
@@ -52,7 +52,7 @@
         cudaSetDevice(GPUID);
         cudaMalloc(&board_d,sizeof(bool)*n*n);
         cudaMalloc(&temp_d,sizeof(bool)*n*n);
-        cudaMemcpy(board_d,tablero,sizeof(bool)*n*n, cudaMemcpyHostToDevice);
+        cudaMemcpy(board_d,board,sizeof(bool)*n*n, cudaMemcpyHostToDevice);
         dim3 block(nb,nb);
         dim3 grid((n+block.x-1)/block.x, (n+block.y-1)/block.y);
         for(int p=0; p<pasos; p++){
@@ -62,8 +62,8 @@
             cudaDeviceSynchronize();    cudaEventRecord(stop);  cudaEventSynchronize(stop);
             cudaEventElapsedTime(&msecs,start,stop);
             cudaMemcpy(board_d,temp_d,sizeof(bool)*n*n,cudaMemcpyDeviceToDevice);
-            cudaMemcpy(tablero,board_d,sizeof(bool)*n*n,cudaMemcpyDeviceToHost);
-            if(n<=128) printAC(n,tablero);
+            cudaMemcpy(board,board_d,sizeof(bool)*n*n,cudaMemcpyDeviceToHost);
+            if(n<=128) printAC(n,board);
              printf("done in %f[s]\n", msecs/1000.0f);
             printf("Press enter to continue\n");
             fflush(stdout);
@@ -87,23 +87,25 @@
 
         srand(seed);
         
-        bool *tablero = (bool*)malloc(n*n*sizeof(bool));
+        bool *board = (bool*)malloc(n*n*sizeof(bool));
         bool *temp = (bool*)malloc(n*n*sizeof(bool));
         for(int i=0; i<n; i++){
             for(int j=0; j<n; j++)
-                tablero[i*n+j] = rand()%2;
+                board[i*n+j] = rand()%2;
         }
         printf("[AC][ORIGINAL]\n");
-        printAC(n,tablero);
+        printAC(n,board);
         printf("Press enter to continue\n");
         fflush(stdout);
         getchar();
         if(CPUoGPU){
             //modo GPU
-            gpu_sim(n,pasos,tablero,temp,nb,GPUID);
+            gpu_sim(n,pasos,board,temp,nb,GPUID);
         }
         else{
             //modo CPU
-        cpu_sim(n,pasos,tablero,temp, nt);
+        cpu_sim(n,pasos,board,temp, nt);
         }
     }
+
+```

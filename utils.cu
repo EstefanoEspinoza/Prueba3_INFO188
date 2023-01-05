@@ -28,3 +28,4 @@ int count_live_neighbour_cell(bool *board,int n, int r, int c){
 }
 
 //Función sacada directamente desde el enlace que dejó en el .txt de la prueba 3, puesta por recomendación de un compañero.
+//En general la estructura del código está influenciado en gran medida por la estructura que realizaron otras personas. Pues de otros modos no funcionaba.
